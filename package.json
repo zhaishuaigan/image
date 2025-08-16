@@ -1,0 +1,14 @@
+{
+    "name": "github-ngapp-net",
+    "version": "0.0.0",
+    "private": true,
+    "main": "./src/index.js",
+    "scripts": {
+        "deploy": "wrangler deploy",
+        "dev": "wrangler dev",
+        "start": "wrangler dev"
+    },
+    "devDependencies": {
+        "wrangler": "^4.30.0"
+    }
+}

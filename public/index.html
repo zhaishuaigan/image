@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>图片上传工具</title>
+	<link rel="shortcut icon" href="favicon.png" type="image/x-icon">
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+			background-color: #000000;
+			color: #ffffff;
+			min-height: 100vh;
+			padding: 24px;
+		}
+
+		.container {
+			max-width: 672px;
+			margin: 0 auto;
+		}
+
+		.space-y-6>*+* {
+			margin-top: 24px;
+		}
+
+		.space-y-4>*+* {
+			margin-top: 16px;
+		}
+
+		.space-y-2>*+* {
+			margin-top: 8px;
+		}
+
+		.text-center {
+			text-align: center;
+		}
+
+		.title {
+			font-size: 30px;
+			font-weight: bold;
+			margin-bottom: 8px;
+		}
+
+		.subtitle {
+			color: #9ca3af;
+		}
+
+		.card {
+			background-color: #111827;
+			border: 1px solid #374151;
+			border-radius: 8px;
+		}
+
+		.card-header {
+			padding: 24px 24px 0 24px;
+		}
+
+		.card-content {
+			padding: 24px;
+		}
+
+		.section-title {
+			font-size: 20px;
+			font-weight: 600;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 8px;
+		}
+
+		.section-subtitle {
+			color: #9ca3af;
+			font-size: 14px;
+		}
+
+		.icon {
+			width: 20px;
+			height: 20px;
+		}
+
+		.icon-sm {
+			width: 16px;
+			height: 16px;
+		}
+
+		.label {
+			display: block;
+			font-weight: 500;
+			margin-bottom: 8px;
+		}
+
+		.file-input {
+			display: block;
+			width: 100%;
+			background-color: #374151;
+			border: 1px solid #4b5563;
+			border-radius: 6px;
+			padding: 8px 12px;
+			color: #ffffff;
+		}
+
+		.file-input::-webkit-file-upload-button {
+			margin-right: 16px;
+			padding: 8px 16px;
+			border-radius: 6px;
+			border: none;
+			background-color: #4b5563;
+			color: #ffffff;
+			cursor: pointer;
+		}
+
+		.file-input::-webkit-file-upload-button:hover {
+			background-color: #6b7280;
+		}
+
+		.preview-container {
+			border: 1px solid #4b5563;
+			border-radius: 8px;
+			padding: 16px;
+			background-color: #374151;
+			text-align: center;
+		}
+
+		.preview-image {
+			max-width: 100%;
+			max-height: 256px;
+			border-radius: 8px;
+		}
+
+		.btn {
+			width: 100%;
+			padding: 8px 16px;
+			border-radius: 6px;
+			border: none;
+			font-weight: 500;
+			cursor: pointer;
+			transition: background-color 0.2s;
+		}
+
+		.btn-primary {
+			background-color: #2563eb;
+			color: #ffffff;
+		}
+
+		.btn-primary:hover:not(:disabled) {
+			background-color: #1d4ed8;
+		}
+
+		.btn:disabled {
+			background-color: #4b5563;
+			cursor: not-allowed;
+		}
+
+		.input {
+			flex: 1;
+			background-color: #374151;
+			border: 1px solid #4b5563;
+			color: #ffffff;
+			border-radius: 6px;
+			padding: 8px 12px;
+		}
+
+		.btn-secondary {
+			border: 1px solid #4b5563;
+			background-color: transparent;
+			color: #ffffff;
+			padding: 8px 16px;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: background-color 0.2s;
+		}
+
+		.btn-secondary:hover {
+			background-color: #374151;
+		}
+
+		.flex {
+			display: flex;
+		}
+
+		.flex-gap {
+			gap: 8px;
+		}
+
+		.items-center {
+			align-items: center;
+		}
+
+		.hidden {
+			display: none;
+		}
+
+		.error-container {
+			background-color: rgba(127, 29, 29, 0.2);
+			border: 1px solid #dc2626;
+			border-radius: 8px;
+			padding: 16px;
+		}
+
+		.text-red {
+			color: #fca5a5;
+		}
+
+		.text-green {
+			color: #86efac;
+		}
+
+		.text-red-icon {
+			color: #ef4444;
+		}
+
+		.text-green-icon {
+			color: #22c55e;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="space-y-6">
+			<div class="text-center space-y-2">
+				<h1 class="title">图片上传工具</h1>
+				<p class="subtitle">上传图片到GitHub仓库并获取链接</p>
+			</div>
+
+			<div class="card">
+				<div class="card-header">
+					<h2 class="section-title">
+						<svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+								d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+						</svg>
+						选择图片
+					</h2>
+					<p class="section-subtitle">支持 JPG、PNG、GIF 格式，最大 10MB</p>
+				</div>
+				<div class="card-content space-y-4">
+					<div class="space-y-2">
+						<label for="image-upload" class="label">
+							选择文件
+						</label>
+						<input id="image-upload" type="file" accept="image/*" class="file-input" />
+					</div>
+
+					<div id="preview-section" class="space-y-2 hidden">
+						<label class="label">预览</label>
+						<div class="preview-container">
+							<img id="preview-image" alt="预览" class="preview-image" />
+						</div>
+					</div>
+
+					<button id="upload-btn" disabled class="btn btn-primary">
+						上传到GitHub
+					</button>
+				</div>
+			</div>
+
+			<div id="result-section" class="card hidden">
+				<div class="card-header">
+					<h2 id="result-title" class="section-title">
+						<svg id="result-icon" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+								d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+						</svg>
+						<span id="result-text">上传成功</span>
+					</h2>
+				</div>
+				<div class="card-content space-y-4">
+					<div id="success-content" class="space-y-4">
+						<div id="result-preview-section" class="space-y-2">
+							<label class="label flex items-center flex-gap">
+								<svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+								</svg>
+								图片预览
+							</label>
+							<div class="preview-container">
+								<img id="result-image" alt="上传的图片" class="preview-image" />
+							</div>
+						</div>
+
+						<div id="result-link-section" class="space-y-2">
+							<label class="label flex items-center flex-gap">
+								<svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+										d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+								</svg>
+								图片链接
+							</label>
+							<div class="flex flex-gap">
+								<input id="result-url" readonly class="input" />
+								<button id="copy-btn" class="btn-secondary">
+									复制
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<div id="error-content" class="error-container hidden">
+						<div class="flex items-center flex-gap">
+							<svg class="icon-sm text-red-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+							</svg>
+							<p id="error-message" class="text-red"></p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- 添加纯JavaScript实现 -->
+	<script>
+		let selectedFile = null;
+		let uploading = false;
+
+		// DOM元素
+		const fileInput = document.getElementById('image-upload');
+		const previewSection = document.getElementById('preview-section');
+		const previewImage = document.getElementById('preview-image');
+		const uploadBtn = document.getElementById('upload-btn');
+		const resultSection = document.getElementById('result-section');
+		const resultTitle = document.getElementById('result-title');
+		const resultIcon = document.getElementById('result-icon');
+		const resultText = document.getElementById('result-text');
+		const successContent = document.getElementById('success-content');
+		const errorContent = document.getElementById('error-content');
+		const resultImage = document.getElementById('result-image');
+		const resultUrl = document.getElementById('result-url');
+		const copyBtn = document.getElementById('copy-btn');
+		const errorMessage = document.getElementById('error-message');
+
+		// 文件选择处理
+		fileInput.addEventListener('change', (event) => {
+			const file = event.target.files?.[0];
+			if (file) {
+				selectedFile = file;
+				resultSection.classList.add('hidden');
+
+				// 创建预览URL
+				const reader = new FileReader();
+				reader.onload = (e) => {
+					previewImage.src = e.target.result;
+					previewSection.classList.remove('hidden');
+				};
+				reader.readAsDataURL(file);
+
+				// 启用上传按钮
+				uploadBtn.disabled = false;
+			}
+		});
+
+		// 上传处理
+		uploadBtn.addEventListener('click', async () => {
+			if (!selectedFile || uploading) return;
+
+			uploading = true;
+			uploadBtn.disabled = true;
+			uploadBtn.textContent = '上传中...';
+			resultSection.classList.add('hidden');
+
+			try {
+				const formData = new FormData();
+				formData.append('image', selectedFile);
+
+				const response = await fetch('/upload', {
+					method: 'POST',
+					body: formData,
+				});
+
+				const result = await response.json();
+				showResult(result);
+			} catch (error) {
+				showResult({
+					success: false,
+					message: '上传失败，请重试',
+				});
+			} finally {
+				uploading = false;
+				uploadBtn.disabled = !selectedFile;
+				uploadBtn.textContent = '上传到GitHub';
+			}
+		});
+
+		// 复制链接
+		copyBtn.addEventListener('click', () => {
+			const url = resultUrl.value;
+			navigator.clipboard.writeText(url).then(() => {
+				copyBtn.textContent = '已复制';
+				setTimeout(() => {
+					copyBtn.textContent = '复制';
+				}, 2000);
+			});
+		});
+
+		// 显示结果
+		function showResult(result) {
+			resultSection.classList.remove('hidden');
+
+			if (result.success) {
+				resultIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+				resultIcon.className = 'icon text-green-icon';
+				resultText.textContent = '上传成功';
+
+				// 显示成功内容
+				successContent.classList.remove('hidden');
+				errorContent.classList.add('hidden');
+
+				if (result.url) {
+					resultImage.src = result.url;
+				}
+				if (result.downloadUrl) {
+					resultUrl.value = result.downloadUrl;
+				}
+			} else {
+				resultIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
+				resultIcon.className = 'icon text-red-icon';
+				resultText.textContent = '上传失败';
+
+				// 显示错误内容
+				successContent.classList.add('hidden');
+				errorContent.classList.remove('hidden');
+				errorMessage.textContent = result.message || '上传失败，请重试';
+			}
+		}
+	</script>
+</body>
+
+</html>
