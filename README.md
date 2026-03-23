@@ -6,6 +6,6 @@
 
 1. 创建一个github仓库
 2. 在github的设置中找到 [https://github.com/settings/tokens/new](https://github.com/settings/tokens/new) 生成一个token, 并在 Select scopes 中勾选 repo
-3. 复制  wrangler.example.jsonc 到 wrangle.jsonc
+3. 复制  wrangler.example.jsonc 到 wrangler.jsonc
 4. 修改 wrangler.jsonc 文件中的仓库信息和token
 5. 运行 npm run dev 就可以本地测试了
