@@ -48,6 +48,7 @@ export default {
 
         }
 
+        const githubToken = env.GITHUB_TOKEN || "your-token"
         const githubOwner = env.GITHUB_OWNER || "your-username"
         const githubRepo = env.GITHUB_REPO || "image-storage"
         const githubBranch = env.GITHUB_BRANCH || "main"
@@ -57,7 +58,8 @@ export default {
             var filename = url.pathname;
             var domain = 'https://raw.githubusercontent.com';
             var downloadUrl = `${domain}/${githubOwner}/${githubRepo}/${githubBranch}${filename}`;
-            return fetch(downloadUrl);
+            var request = new Request(downloadUrl);
+            return this.fetchAndCache(request, 3600);
         }
         try {
 
@@ -65,90 +67,28 @@ export default {
             const file = formData.get("image")
 
             if (!file) {
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        message: "请选择要上传的图片",
-                    }),
-                    {
-                        status: 400,
-                        headers: { "Content-Type": "application/json" },
-                    },
-                )
+                return this.errorResponse("请选择要上传的图片", 400);
             }
 
             // 验证文件类型
             if (!file.type.startsWith("image/")) {
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        message: "只支持图片文件",
-                    }),
-                    {
-                        status: 400,
-                        headers: { "Content-Type": "application/json" },
-                    },
-                )
+                return this.errorResponse("只支持图片文件", 400);
             }
 
             // 验证文件大小 (10MB)
             if (file.size > 10 * 1024 * 1024) {
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        message: "文件大小不能超过10MB",
-                    }),
-                    {
-                        status: 400,
-                        headers: { "Content-Type": "application/json" },
-                    },
-                )
+                return this.errorResponse("文件大小不能超过10MB", 400);
             }
-
-            const arrayBuffer = await file.arrayBuffer()
-            const uint8Array = new Uint8Array(arrayBuffer)
-            const base64Content = btoa(String.fromCharCode(...uint8Array))
 
             // 生成文件名
             const timestamp = Date.now()
             const extension = file.name.split(".").pop() || "jpg"
             var date = this.getTime().formatYearMonth;
-            const fileName = `${date}/${timestamp}.${extension}`
+            const fileName = `${date}/${timestamp}.${extension}`;
 
-            // 上传到GitHub
-            const githubResponse = await fetch(
-                `https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${fileName}`,
-                {
-                    method: "PUT",
-                    headers: {
-                        Authorization: `token ${env.GITHUB_TOKEN}`,
-                        "Content-Type": "application/json",
-                        "User-Agent": "Cloudflare-Workers",
-                    },
-                    body: JSON.stringify({
-                        message: `Upload image: ${fileName}`,
-                        content: base64Content,
-                        branch: githubBranch,
-                    }),
-                },
-            )
-
-            if (!githubResponse.ok) {
-                const errorData = await githubResponse.json()
-                console.error("GitHub API Error:", errorData)
-                return new Response(
-                    JSON.stringify({
-                        success: false,
-                        message: `GitHub上传失败: ${errorData.message || "未知错误"}`,
-                    }),
-                    {
-                        status: 500,
-                        headers: { "Content-Type": "application/json" },
-                    },
-                )
-            }
-
-            const githubData = await githubResponse.json()
+            console.log("Uploading file:", fileName);
+            await this.uploadToGitHub(file, githubToken, githubOwner, githubRepo, githubBranch, fileName);
+            console.log("Upload success");
 
             // 构建图片URL
             // const imageUrl = `https://raw.githubusercontent.com/${githubOwner}/${githubRepo}/${githubBranch}/${fileName}`
@@ -172,16 +112,69 @@ export default {
             )
         } catch (error) {
             console.error("Upload error:", error)
-            return new Response(
-                JSON.stringify({
-                    success: false,
-                    message: "服务器内部错误",
-                }),
-                {
-                    status: 500,
-                    headers: { "Content-Type": "application/json" },
-                },
-            )
+            return this.errorResponse("服务器内部错误");
         }
+    },
+
+    uploadToGitHub: async function (file, token, githubOwner, githubRepo, githubBranch, fileName) {
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        // 使用分块处理避免调用栈溢出
+        const CHUNK_SIZE = 65536;
+        let binary = '';
+        for (let i = 0; i < uint8Array.length; i += CHUNK_SIZE) {
+            const chunk = uint8Array.subarray(i, i + CHUNK_SIZE);
+            binary += String.fromCharCode(...chunk);
+        }
+        const base64Content = btoa(binary);
+
+        var githubUrl = `https://api.github.com/repos/${githubOwner}/${githubRepo}/contents/${fileName}`
+        // 上传到GitHub
+        const githubResponse = await fetch(githubUrl,
+            {
+                method: "PUT",
+                headers: {
+                    Authorization: `token ${token}`,
+                    "Content-Type": "application/json",
+                    "User-Agent": "Cloudflare-Workers",
+                },
+                body: JSON.stringify({
+                    message: `Upload image: ${fileName}`,
+                    content: base64Content,
+                    branch: githubBranch,
+                }),
+            },
+        )
+        if (!githubResponse.ok) {
+            const errorData = await githubResponse.json()
+            console.error("GitHub API Error:", errorData);
+            throw new Error(`GitHub API Error: ${errorData.message || "未知错误"}`);
+        }
+        const githubData = await githubResponse.json();
+    },
+    errorResponse: function (message, status = 500) {
+        return new Response(
+            JSON.stringify({
+                success: false,
+                message: message,
+            }),
+            {
+                status: status,
+                headers: { "Content-Type": "application/json" },
+            },
+        )
+    },
+    fetchAndCache: async function (request, time) {
+        var response = await caches.default.match(request);
+        if (response) {
+            console.log("Cache hit:", request.url);
+            return response;
+        }
+        console.log("Cache miss:", request.url);
+        response = await fetch(request);
+        await caches.default.put(request, response.clone(), {
+            expirationTtl: time,
+        });
+        return response;
     }
 }
